@@ -1,0 +1,170 @@
+<% provide(:title, 'User Page') %>
+<h1>Dashboard</h1>
+<h3>Username: <%= @user.name %></h3>
+<div class="container">
+<div class="container col-md-5">
+<h2>New Quiz</h2>
+<form method="GET" action="/newquiz">
+    <div class="form-group">
+  	  <label for="genre">Select genre:</label>
+      <select name="genre" class="form-control" id="genre" onchange="renderSubs()">
+      <% get_all_genres.each do |genre|%>
+        <option value='<%= genre.id %>'><%= genre.name %></option>
+      <% end %>
+      </select>
+  	  <label for="subgenre">Select subgenre:</label>
+      <select name="subgenre" class="form-control" id="subgenre">
+      </select>
+      <button type="submit" class="btn btn-success">Start Quiz</button>
+    </div>
+    </form>
+</div>
+<div class="container col-md-1"></div>
+<div class="container col-md-5">
+<h2>Ongoing Quizzes</h2>
+    <div class="form-group">
+    <ul id="oq" class="list-group">
+    </ul>
+    </div>
+</div>
+</div>
+<br/><br/><br/></br>
+<div class="container">
+<div class="container col-md-5">
+<h2>Leaderboard</h2>
+  <div class="form-group">
+      <label for="genre">Select genre:</label>
+      <select name="genre" class="form-control" id="genre2" onchange="renderSubs2()">
+      <% get_all_genres.each do |genre|%>
+        <option value='<%= genre.id %>'><%= genre.name %></option>
+      <% end %>
+      </select>
+      <label for="subgenre">Select subgenre:</label>
+      <select name="subgenre" class="form-control" id="subgenre2">
+      </select>
+      <button type="button" class="btn btn-danger" onclick="leaderboard()">View Leaderboard</button>
+    </div>
+    <!-- <div class="container"> -->
+    <table class="table table-striped" id="showTable" >
+</table>
+<!-- </div> -->
+</div>
+<div class="container col-md-1"></div>
+
+<div class="container col-md-5">
+<h2>My Quizzes</h2>
+<table class="table table-striped" id="myQuizzes" >
+
+</table>
+</div>
+</div>
+
+<script>
+  // $(document).on('turbolinks:load',renderSubs);
+  // $(document).on('turbolinks:load',renderSubs2);
+  // $(document).on('turbolinks:load',getOngoingQuizzes); 
+  // $(document).on('turbolinks:load',getMyQuizzes); 
+  $(document).ready(renderSubs);
+  $(document).ready(renderSubs2);
+  $(document).ready(getOngoingQuizzes); 
+  $(document).ready(getMyQuizzes); 
+	function renderSubs()
+	{
+		selectedGenre = $( "#genre" ).val();
+		sg = $("#subgenre");
+		sg.empty();
+		$.ajax({
+  				type: "GET",
+  				url: '/getsubgenres',
+          async:false,
+  				data: {'g': selectedGenre},
+  				success: function putSubs(response){
+  					for(i in response)
+  					{
+  						sg.append('<option value = '+ response[i].id + ' >' + response[i].name + '</option');
+  					}
+  				},
+			   });
+	}
+  function renderSubs2()
+  {
+    selectedGenre = $( "#genre2" ).val();
+    sg2 = $("#subgenre2");
+    sg2.html("");
+    sg2.append('<option value="None">None</option>');
+    $.ajax({
+          type: "GET",
+          url: '/getsubgenres',
+          async:false,
+          data: {'g': selectedGenre},
+          success: function putSubs(response){
+            for(i in response)
+            {
+              sg2.append('<option value = '+ response[i].id + ' >' + response[i].name + '</option');
+            }
+          },
+         });
+  }
+  function getOngoingQuizzes()
+  {
+    ongoingList = $( "#oq" )
+    ongoingList.empty();
+    $.ajax({
+          type: "GET",
+          url: '/getongoingquizzes',
+          async:false,
+          success: function putSubs(response){
+            for(i=0;i<response.genres.length;i++)
+            {
+              ongoingList.append('<li class="list-group-item"><div class="container col-md-6" style="font-size:1.1em">' + response.genres[i].name + ': ' + response.subgenres[i].name + '</div><div class="container col-md-3"></div><form action="/continuequiz" method="GET"><input class="hidden" name="sg" value="' + response.subgenres[i].id + '"><button type="submit" class="btn btn-primary btn-xs">Continue</button></li>');
+            }
+          },
+         });
+  }
+  function leaderboard()
+  {
+    table = $( "#showTable" )
+    table.empty();
+    table.append('<thead><tr><th>Rank</th><th>User</th><th>Score</th></tr></thead><tbody>');
+    $.ajax({
+          type: "GET",
+          url: '/leaderboard',
+          data: {
+            'genre': $( "#genre2" ).val(),
+            'subgenre': $( "#subgenre2" ).val()            
+          },
+          success: function (response){
+            for(i=0;i<response.scores.length && i<10;i++)
+            {
+              rank=i+1;
+              table.append('<tr><td>' + rank + '</td><td>' + response.users[i] + '</td><td>' + response.scores[i] + '</td></tr>');
+            }
+          },
+         });
+    table.append('</tbody>');
+
+  }
+
+  function getMyQuizzes()
+  {
+    table = $( "#myQuizzes" );
+    table.empty();
+    table.append('<thead><tr><th>Genre</th><th>Subgenre</th><th>Score</th></tr></thead><tbody>');
+
+    $.ajax({
+          type: "GET",
+          url: '/myquizzes',
+          success: function (response){
+            for(i=0;i<response.completed.length;i++)
+            {
+              table.append('<tr><td>' + response.completed[i].genre + '</td><td>' + response.completed[i].subgenre + '</td><td>' + response.completed[i].score + '</td></tr>');
+            }
+            for(i=0;i<response.not_completed.length;i++)
+            {
+              table.append('<tr><td>' + response.not_completed[i].genre + '</td><td>' + response.not_completed[i].subgenre + '</td><td>' + response.not_completed[i].score + '</td></tr>');
+            }
+          },
+         });
+    table.append('</tbody>');
+  }
+</script>

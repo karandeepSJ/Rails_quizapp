@@ -1,0 +1,142 @@
+<% provide(:title, 'Quiz') %>
+<h1 style="text-align: left;"><%=@genre.name %></h1>
+<div class="title">
+<h2 style="text-align: left; font-size: 1.4em; display: inline; float: left;"><%=@subgenre.name %></h2>
+<h2 style="text-align: left; font-size: 1.4em; display: inline; float: right;" id="score"></h2>
+</div>
+<br/>
+<br/>
+<br/>
+<div class="container">
+<h2 id="ques"></h2>
+<h5 style="text-align: center" id="qtype"></h5>
+<!-- <form method="GET" action="/quiz"> -->
+<form>
+    <div class="form-group">
+    <div class="funkyradio">
+        <div class="funkyradio-success">
+            <input type="radio" name="option" id="1" value = "1" checked="checked" />
+            <label for="1" id="option1"></label>
+        </div>
+        <div class="funkyradio-success">
+            <input type="radio" name="option" id="2" value = "2" />
+            <label for="2" id="option2"></label>
+        </div>
+        <div class="funkyradio-success">
+            <input type="radio" name="option" id="3" value = "3" />
+            <label for="3" id="option3"></label>
+        </div>
+        <div class="funkyradio-success"> 
+            <input type="radio" name="option" id="4" value = "4" />
+            <label for="4" id="option4"></label>
+        </div>
+    </div>
+    <br/>
+      <button type="button" class="btn btn-success" onclick="submitAnswer()">Submit</button>
+      <button type="button" class="btn btn-primary" onclick="fifty()" id="50">50-50 (For Single Correct)</button>
+      <button type="button" class="btn btn-primary" onclick="choose1()" id="choose" >Choose 1 (For Multi Correct)</button>
+    </div>
+    </form>
+</div>
+<script>
+  question=null,genre=null,subgenre=null;
+  window.addEventListener('load', function(){getq()});
+
+  function submitAnswer()
+  {
+    res = $('#result');
+    res.empty();
+    var selected = [];
+    $('.funkyradio-success input:checked').each(function() {
+      selected.push($(this).attr('value'));
+    });
+    $.ajax({
+          type: "GET",
+          url: '/checkans',
+          data: {'answer': selected.join(""), 'ques': question.id, 'sg': <%=@subgenre.id %>},
+          success: function (response){
+            alert(response.result);
+            getq();
+          },
+         });
+  }
+  function getq()
+  {
+    $.ajax({
+          type: "GET",
+          url: '/quiz',
+          data: {'genre': <%=@genre.id %> , 'subgenre': <%=@subgenre.id %>},
+          success: function (response){
+            question=response.q
+            genre=response.g
+            subgenre=response.sg
+            $('#ques').html(question.q);
+            $('#qtype').html(question.qtype);
+            if(question.qtype=="Multiple Correct")
+            {
+              $('#1').attr('type','checkbox')
+              $('#2').attr('type','checkbox')
+              $('#3').attr('type','checkbox')
+              $('#4').attr('type','checkbox')
+            }
+            else
+            {
+              $('#1').attr('type','radio')
+              $('#2').attr('type','radio')
+              $('#3').attr('type','radio')
+              $('#4').attr('type','radio')
+            }
+            $('#option1').html(question.option1);
+            $('#option2').html(question.option2);
+            $('#option3').html(question.option3);
+            $('#option4').html(question.option4);
+            $('#option1').removeClass('hidden');
+            $('#option2').removeClass('hidden');
+            $('#option3').removeClass('hidden');
+            $('#option4').removeClass('hidden');
+            $('#score').html("Score: "+response.score);
+            $('#1').prop('checked',false);
+            $('#2').prop('checked',false);
+            $('#3').prop('checked',false);
+            $('#4').prop('checked',false);
+
+          },
+         });
+  }
+  function fifty()
+  {
+    $.ajax({
+          type: "GET",
+          url: '/fifty',
+          data: {'subgenre': <%=@subgenre.id %>},
+          success: function (response){
+            if(!response.allowed)
+              alert(response.message);
+            else
+            {
+              $('#option'+response.o[0]).addClass('hidden');
+              $('#option'+response.o[1]).addClass('hidden');
+              $('#50').attr('disabled',true)
+            } 
+          },
+        });
+  };
+
+  function choose1()
+  {
+    $.ajax({
+          type: "GET",
+          url: '/choose',
+          data: {'subgenre': <%=@subgenre.id %>},
+          success: function (response){
+            if(!response.allowed)
+              alert(response.message);
+            else
+            {
+              $('#'+response.o[0]).prop('checked',true);
+              $('#choose').attr('disabled',true)
+            } 
+          },
+        });
+  }
+</script>
